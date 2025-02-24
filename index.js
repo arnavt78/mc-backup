@@ -1,13 +1,6 @@
-// CHANGE THIS VARIABLE FOR THE FOLDER YOU WANT TO ZIP
-// Make sure it is an absolute path!
-const FOLDER_NAME = "C:\\Data\\Minecraft\\Server\\Uzainav";
-
-// CHANGE THIS VARIABLE FOR THE FOLDER WHERE YOU WANT TO SAVE THE ZIP FILE
-// Make sure it is an absolute path! Do not include the filename, it is created automatically!
-const ZIP_FOLDER = "D:\\Minecraft\\Saves Backups\\Servers\\Uzair and Arnav\\Uzainav";
-
 const fs = require("fs");
 const archiver = require("archiver");
+const yaml = require("js-yaml");
 const path = require("path");
 const ProgressBar = require("progress");
 const chalk = require("chalk");
@@ -119,10 +112,35 @@ const zipFolder = async (folderPath, outputZipPath) => {
   archive.finalize();
 };
 
-const zipPath = path.join(ZIP_FOLDER, generateZipFilename(FOLDER_NAME));
+if (!fs.existsSync("backup.yaml")) {
+  const yamlContents = `# BACKUP PROGRAM CONFIGUATION FILE
+# Please fill out this file before running the backup program. Ensure all paths are in absolute form, and replace backslashes with double backslashes.
 
-console.log(`📦 ${chalk.bold("Zipping folder:")} ${chalk.green(FOLDER_NAME)}`);
+# FOLDER TO ZIP
+# This is the folder that will be zipped. It should be an absolute path.
+folderName: ""
+
+# ZIP FOLDER
+# This is the folder where the zipped file will be saved. It should be an absolute path.
+# Do not include the filename, it is created automatically!
+zipFolder: ""
+`;
+
+  console.log(
+    chalk.red(
+      "🚫 No backup.yaml file found! The file has been created, please edit it before running this program again!\n"
+    )
+  );
+  fs.writeFileSync("backup.yaml", yamlContents);
+
+  process.exit(1);
+}
+
+const { folderName, zipFolder: zipFolderName } = yaml.load(fs.readFileSync("backup.yaml", "utf8"));
+const zipPath = path.join(zipFolderName, generateZipFilename(folderName));
+
+console.log(`📦 ${chalk.bold("Zipping folder:")} ${chalk.green(folderName)}`);
 console.log(`📂 ${chalk.bold("Output ZIP:")} ${chalk.yellow(zipPath)}`);
 console.log();
 
-zipFolder(FOLDER_NAME, zipPath);
+zipFolder(folderName, zipPath);

@@ -1,25 +1,26 @@
 {
-  "name": "mc-backup",
-  "version": "1.0.0",
-  "description": "Backup Minecraft worlds, mainly servers!",
-  "homepage": "https://github.com/arnavt78/mc-backup#readme",
-  "bugs": {
-    "url": "https://github.com/arnavt78/mc-backup/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/arnavt78/mc-backup.git"
-  },
-  "license": "ISC",
-  "author": "Arnav Thorat",
-  "type": "commonjs",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "dependencies": {
-    "archiver": "^7.0.1",
-    "chalk": "^4.1.2",
-    "progress": "^2.0.3"
-  }
+	"name": "mc-backup",
+	"version": "1.0.0",
+	"description": "Backup Minecraft worlds, mainly servers!",
+	"homepage": "https://github.com/arnavt78/mc-backup#readme",
+	"bugs": {
+		"url": "https://github.com/arnavt78/mc-backup/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/arnavt78/mc-backup.git"
+	},
+	"license": "ISC",
+	"author": "Arnav Thorat",
+	"type": "commonjs",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"dependencies": {
+		"archiver": "^7.0.1",
+		"chalk": "^4.1.2",
+		"js-yaml": "^4.1.0",
+		"progress": "^2.0.3"
+	}
 }
