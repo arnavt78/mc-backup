@@ -1,4 +1,5 @@
 const fs = require("fs");
+const os = require("os");
 const archiver = require("archiver");
 const yaml = require("js-yaml");
 const path = require("path");
@@ -8,6 +9,34 @@ const { promisify } = require("util");
 
 const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
+
+const handleException = (err) => {
+  const errProperties = {
+    // For 'Error':
+    Code: err?.code,
+    Message: err?.message,
+    "Stack trace": err?.stack,
+    // For 'SystemError':
+    Address: err?.address,
+    Destination: err?.dest,
+    "Error number": err?.errno,
+    Information: err?.info,
+    Path: err?.path,
+    Port: err?.port,
+    "System call": err?.syscall,
+  };
+
+  console.log(`❌ ${chalk.bold("An error occurred!\n")}`);
+
+  console.log(`${chalk.red.dim.underline("Technical Error Information\n")}`);
+
+  for (let error in errProperties) {
+    if (typeof errProperties[error] !== "undefined")
+      console.log(chalk.red.dim(`${chalk.italic(error)}: ${errProperties[error]}`));
+  }
+
+  console.log();
+};
 
 // Function to generate zip filename based on local date and folder name
 const generateZipFilename = (folderPath) => {
@@ -55,13 +84,33 @@ const convertSize = (bytes, decimals = 2) => {
   return { size, unit: sizes[i] };
 };
 
+const copyFolder = (folderPath, tmpFolderPath) => {
+  console.log(chalk.blue.italic("Copying world folder to temporary location..."));
+
+  fs.mkdirSync(folderPath, { recursive: true });
+  fs.cpSync(folderPath, tmpFolderPath, {
+    recursive: true,
+    preserveTimestamps: true,
+  });
+
+  console.log(`✅ ${chalk.bold("Successfully copied!\n")}`);
+};
+
+const delFolder = (tmpFolderPath) => {
+  console.log(chalk.blue.italic("Deleting temporary folder..."));
+  fs.rmSync(tmpFolderPath, { recursive: true, force: true });
+  console.log(`✅ ${chalk.bold("Successfully deleted!\n")}`);
+};
+
 // Function to zip a folder and display a progress bar
-const zipFolder = async (folderPath, outputZipPath) => {
+const zipFolder = async (folderPath, outputZipPath, tmpFolder) => {
   const output = fs.createWriteStream(outputZipPath);
   const archive = archiver("zip", { zlib: { level: 9 } });
 
   let bar = null;
   let lastPrintedProgress = 0;
+
+  console.log(chalk.blue.italic("Zipping folder..."));
 
   const totalBytes = await getFolderSize(folderPath); // Compute total size before zipping
   const { size: totalSize, unit: sizeUnit } = convertSize(totalBytes, 2); // Convert to readable format
@@ -85,15 +134,19 @@ const zipFolder = async (folderPath, outputZipPath) => {
     const zipSize = fs.statSync(outputZipPath).size;
     const { size: finalSize, unit: finalUnit } = convertSize(zipSize, 2);
     console.log(
-      `✅ ${chalk.bold("Successfully zipped:")} ${chalk.red(totalSize, sizeUnit)} -> ${chalk.green(
+      `✅ ${chalk.bold("Successfully zipped!")} ${chalk.red(totalSize, sizeUnit)} -> ${chalk.green(
         finalSize,
         finalUnit
-      )}`
+      )}\n`
     );
+
+    delFolder(tmpFolder);
+
+    console.log(chalk.italic.yellow("Waiting for next backup time...\n"));
   });
 
   archive.on("error", (err) => {
-    throw err;
+    handleException(err);
   });
 
   archive.on("progress", (data) => {
@@ -136,11 +189,22 @@ zipFolder: ""
   process.exit(1);
 }
 
-const { folderName, zipFolder: zipFolderName } = yaml.load(fs.readFileSync("backup.yaml", "utf8"));
-const zipPath = path.join(zipFolderName, generateZipFilename(folderName));
+const runBackupOperation = () => {
+  const { folderName, zipFolder: zipFolderName } = yaml.load(
+    fs.readFileSync("backup.yaml", "utf8")
+  );
+  const zipPath = path.join(zipFolderName, generateZipFilename(folderName));
 
-console.log(`📦 ${chalk.bold("Zipping folder:")} ${chalk.green(folderName)}`);
-console.log(`📂 ${chalk.bold("Output ZIP:")} ${chalk.yellow(zipPath)}`);
-console.log();
+  const tmpFolder = path.join(os.tmpdir(), "temp_backup_world");
 
-zipFolder(folderName, zipPath);
+  console.log(`📦 ${chalk.bold("Zipping folder:")} ${chalk.green(folderName)}`);
+  console.log(`📂 ${chalk.bold("Output ZIP:")} ${chalk.yellow(zipPath)}`);
+  console.log();
+
+  copyFolder(folderName, tmpFolder);
+
+  zipFolder(tmpFolder, zipPath, tmpFolder);
+};
+
+runBackupOperation();
+setInterval(runBackupOperation, 60 * 60 * 1000);
